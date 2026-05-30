@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AroniumPOS Display Client — Setup</title>
+  <style>
+    /* Pas de Google Fonts — polices système uniquement pour éviter le black screen */
+    :root {
+      --bg:    #07090f;
+      --panel: #0d1220;
+      --acc:   #e8a000;
+      --acc2:  rgba(232,160,0,0.12);
+      --ok:    #34c77b;
+      --err:   #e85555;
+      --txt:   #f0ece2;
+      --txt2:  #8a8fa8;
+      --txt3:  #4a4f66;
+      --bdr:   rgba(232,160,0,0.18);
+      --bdrhi: rgba(232,160,0,0.45);
+      --font:  -apple-system, 'Segoe UI', system-ui, sans-serif;
+      --mono:  'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { font-size: 15px; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--txt);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(232,160,0,0.06), transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ─── HEADER ─── */
+    .hdr { text-align:center; margin-bottom:22px; }
+    .hdr-logo {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:52px; height:52px;
+      background: linear-gradient(135deg, #e8a000, #c88000);
+      border-radius: 14px;
+      margin-bottom: 10px;
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: 1px;
+      color: #07090f;
+    }
+    .hdr-title {
+      font-size: 18px; font-weight: 700;
+      color: var(--acc);
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+    .hdr-sub {
+      font-size: 11px; color: var(--txt3);
+      letter-spacing: 1.5px; text-transform: uppercase;
+      font-family: var(--mono);
+    }
+
+    /* ─── CARD ─── */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--bdr);
+      border-radius: 16px;
+      padding: 22px;
+      width: 100%;
+      max-width: 440px;
+      position: relative;
+    }
+    .card::before {
+      content:'';
+      position:absolute; top:0; left:50%; transform:translateX(-50%);
+      width:80px; height:2px;
+      background: linear-gradient(90deg, transparent, var(--acc), transparent);
+      border-radius: 2px;
+    }
+
+    /* ─── STEPS ─── */
+    .step { display:none; }
+    .step.active { display:block; }
+
+    /* Progress dots */
+    .dots {
+      display:flex; justify-content:center; gap:7px;
+      margin-bottom:18px;
+    }
+    .dot {
+      width:6px; height:6px; border-radius:50%;
+      background: var(--txt3); transition:all 0.3s;
+    }
+    .dot.active { background:var(--acc); width:18px; border-radius:3px; }
+    .dot.done   { background:var(--ok); }
+
+    h2 {
+      font-size:17px; font-weight:700;
+      color:var(--acc); margin-bottom:5px; letter-spacing:0.5px;
+    }
+    p { font-size:13px; color:var(--txt2); line-height:1.65; margin-bottom:14px; }
+
+    .note {
+      font-size:12px; font-family:var(--mono);
+      background:rgba(0,0,0,0.35);
+      padding:10px 13px; border-radius:9px;
+      border-left:2.5px solid var(--acc);
+      margin-bottom:14px; line-height:1.7; color:var(--txt2);
+    }
+    .note strong { color:var(--acc); font-weight:700; }
+    .note code { color:var(--ok); }
+
+    /* ─── FORM ─── */
+    label {
+      display:block;
+      font-size:10px; font-weight:700;
+      letter-spacing:2px; text-transform:uppercase;
+      color:var(--txt3); margin-bottom:6px;
+      font-family:var(--mono);
+    }
+    select {
+      width:100%;
+      padding:9px 36px 9px 12px;
+      background:#070b14;
+      border:1px solid var(--bdr);
+      border-radius:9px;
+      color:var(--txt);
+      font-size:14px; font-family:var(--font);
+      margin-bottom:13px;
+      cursor:pointer;
+      appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23e8a000' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;
+      background-position:right 12px center;
+      transition:border-color 0.2s;
+    }
+    select:focus { outline:none; border-color:var(--acc); }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      width:100%; padding:11px;
+      border:none; border-radius:9px;
+      font-family:var(--font); font-size:14px; font-weight:600;
+      cursor:pointer; transition:all 0.2s;
+      margin-bottom:7px; letter-spacing:0.3px;
+    }
+    .btn:last-child { margin-bottom:0; }
+    .btn-primary {
+      background:linear-gradient(135deg, #e8a000, #c88000);
+      color:#07090f;
+    }
+    .btn-primary:hover { box-shadow:0 4px 20px rgba(232,160,0,0.35); transform:translateY(-1px); }
+    .btn-primary:active { transform:translateY(0); box-shadow:none; }
+    .btn-primary:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+    .btn-ghost {
+      background:transparent;
+      border:1px solid var(--bdr);
+      color:var(--txt2);
+    }
+    .btn-ghost:hover { border-color:var(--bdrhi); color:var(--txt); }
+
+    /* ─── STATUS ─── */
+    .msg {
+      padding:10px 13px; border-radius:9px;
+      font-size:12px; font-family:var(--mono);
+      margin-bottom:12px; display:none; line-height:1.5;
+    }
+    .msg.ok  { background:rgba(52,199,123,0.1); border:1px solid rgba(52,199,123,0.25); color:var(--ok); }
+    .msg.err { background:rgba(232,85,85,0.1);  border:1px solid rgba(232,85,85,0.25);  color:var(--err); }
+    .msg.inf { background:var(--acc2); border:1px solid var(--bdrhi); color:var(--acc); }
+    .msg.visible { display:block; }
+
+    /* ─── PAIR DISPLAY ─── */
+    .pair-vis {
+      display:flex; align-items:center; justify-content:center;
+      gap:12px; margin:14px 0; padding:14px;
+      background:rgba(0,0,0,0.3);
+      border-radius:10px; border:1px solid var(--bdr);
+    }
+    .port-badge {
+      font-family:var(--mono); font-size:15px; font-weight:700;
+      color:var(--txt); background:var(--panel);
+      padding:8px 16px; border-radius:8px;
+      border:1px solid var(--bdrhi); letter-spacing:1px;
+    }
+    .arrow { color:var(--acc); font-size:22px; font-weight:300; }
+
+    /* ─── PROGRESS BAR ─── */
+    .progress-wrap { margin-bottom:12px; }
+    .progress-label {
+      font-size:11px; font-family:var(--mono);
+      color:var(--txt3); margin-bottom:5px; letter-spacing:1px;
+    }
+    .progress-bar {
+      height:4px; background:rgba(255,255,255,0.06);
+      border-radius:2px; overflow:hidden;
+    }
+    .progress-fill {
+      height:100%; width:0%;
+      background:linear-gradient(90deg, var(--acc), #ffd060);
+      border-radius:2px;
+      transition:width 0.4s ease;
+    }
+
+    /* ─── FINAL INFO ─── */
+    .info-grid {
+      background:rgba(0,0,0,0.3);
+      border-radius:10px; padding:14px;
+      margin-bottom:14px;
+    }
+    .info-row {
+      display:flex; justify-content:space-between;
+      padding:6px 0;
+      border-bottom:1px solid rgba(255,255,255,0.04);
+    }
+    .info-row:last-child { border:none; }
+    .info-k { font-size:11px; font-family:var(--mono); color:var(--txt3); letter-spacing:1px; }
+    .info-v { font-size:12px; font-family:var(--mono); color:var(--acc); font-weight:700; }
+
+    /* ─── SPINNER ─── */
+    .spin {
+      display:inline-block; width:13px; height:13px;
+      border:2px solid rgba(7,9,15,0.3);
+      border-top-color:#07090f;
+      border-radius:50%;
+      animation:spin 0.7s linear infinite;
+      vertical-align:middle; margin-right:7px;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .sep { height:1px; background:var(--bdr); margin:14px 0; }
+  </style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">POS</div>
+  <div class="hdr-title">AroniumPOS Display Client</div>
+  <div class="hdr-sub">First-Time Setup</div>
+</div>
+
+<div class="card">
+
+  <!-- Progress dots -->
+  <div class="dots">
+    <div class="dot active" id="d1"></div>
+    <div class="dot" id="d2"></div>
+    <div class="dot" id="d3"></div>
+    <div class="dot" id="d4"></div>
+  </div>
+
+  <!-- ══════ STEP 1 — Choose ports ══════ -->
+  <div class="step active" id="step1">
+    <h2>Select COM Ports</h2>
+    <p>Choose two <strong>different</strong> COM ports — one for Aronium, one for this app. They will be linked as a virtual cable.</p>
+
+    <label>Aronium's port (set this in Aronium → Settings → Devices)</label>
+    <select id="aroniumPort">
+      <option value="">Loading...</option>
+    </select>
+
+    <label>App port (this app listens here)</label>
+    <select id="appPort">
+      <option value="">Loading...</option>
+    </select>
+
+    <div class="msg" id="msg1"></div>
+
+    <button class="btn btn-primary" id="s1Next">Continue →</button>
+    <button class="btn btn-ghost" id="s1Skip">Skip — configure manually later</button>
+  </div>
+
+  <!-- ══════ STEP 2 — Install driver ══════ -->
+  <div class="step" id="step2">
+    <h2>Virtual COM Driver</h2>
+    <p>The app will install the <strong>bundled com0com driver</strong> and create the virtual cable automatically. No internet required.</p>
+
+    <div class="pair-vis">
+      <span class="port-badge" id="vis1">COM20</span>
+      <span class="arrow">↔</span>
+      <span class="port-badge" id="vis2">COM21</span>
+    </div>
+
+    <div class="note">
+      <strong>What happens:</strong><br>
+      Aronium writes to <code id="nc1">COM20</code> →
+      virtual cable →
+      this app reads from <code id="nc2">COM21</code><br><br>
+      Using <strong>COM20 ↔ COM21</strong> — far from standard ports, zero conflict risk.
+    </div>
+
+    <div class="progress-wrap" id="progressWrap" style="display:none">
+      <div class="progress-label" id="progressLabel">Installing driver...</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="msg" id="msg2"></div>
+
+    <button class="btn btn-primary" id="s2Install">
+      <span id="s2Txt">Install bundled driver & create COM20 ↔ COM21</span>
+    </button>
+    <button class="btn btn-ghost" id="s2Manual">I'll do it manually (HHD VSP Tools / com0com)</button>
+    <button class="btn btn-ghost" id="s2Back">← Back</button>
+  </div>
+
+  <!-- ══════ STEP 3 — Aronium config ══════ -->
+  <div class="step" id="step3">
+    <h2>Configure Aronium</h2>
+    <p>Open Aronium POS and set the customer display:</p>
+
+    <div class="note">
+      Aronium → Settings → Devices → Customer Display<br>
+      · Port: <strong id="s3Port">COM10</strong><br>
+      · Enabled: <strong>✓</strong><br>
+      · Type: VFD or Generic
+    </div>
+
+    <div class="note" style="border-left-color:#34c77b">
+      This app listens on: <strong id="s3AppPort">COM11</strong>
+    </div>
+
+    <button class="btn btn-primary" id="s3Next">Done →</button>
+    <button class="btn btn-ghost" id="s3Back">← Back</button>
+  </div>
+
+  <!-- ══════ STEP 4 — Done ══════ -->
+  <div class="step" id="step4">
+    <h2>All set! 🎉</h2>
+    <p>AroniumPOS Display Client is ready. Everything is configured.</p>
+
+    <div class="info-grid">
+      <div class="info-row"><span class="info-k">Aronium port</span><span class="info-v" id="f1">—</span></div>
+      <div class="info-row"><span class="info-k">App port</span><span class="info-v" id="f2">—</span></div>
+      <div class="info-row"><span class="info-k">Phone/Tablet PWA</span><span class="info-v" id="f3">Loading...</span></div>
+      <div class="info-row"><span class="info-k">Auto-start</span><span class="info-v">Enabled ✓</span></div>
+    </div>
+
+    <button class="btn btn-primary" id="s4Launch">Launch AroniumPOS Display Client</button>
+  </div>
+
+</div>
+
+<script>
+let aPort = '', bPort = '';
+
+// ── Progress dots ──────────────────────────────────────
+function setDots(active) {
+  for (let i = 1; i <= 4; i++) {
+    const d = document.getElementById('d' + i);
+    d.className = 'dot' + (i < active ? ' done' : i === active ? ' active' : '');
+  }
+}
+
+// ── Show step ──────────────────────────────────────────
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  setDots(n);
+}
+
+// ── Message helper ─────────────────────────────────────
+function showMsg(id, type, text) {
+  const el = document.getElementById(id);
+  el.className = 'msg ' + type + ' visible';
+  el.textContent = text;
+}
+function hideMsg(id) {
+  document.getElementById(id).className = 'msg';
+}
+
+// ── Load ports ─────────────────────────────────────────
+async function loadPorts() {
+  const selA = document.getElementById('aroniumPort');
+  const selB = document.getElementById('appPort');
+
+  // COM20/COM21 are always available as options (will be created by installer)
+  const fixedOpts =
+    '<option value="COM20">COM20  —  Aronium (recommended)</option>' +
+    '<option value="COM21">COM21  —  App (recommended)</option>';
+
+  try {
+    const ports = await window.electronAPI.getSerialPorts();
+    const realPaths = ports.map(p => p.path);
+    let extra = '';
+    // Add real ports that are not COM20/COM21
+    ports.forEach(p => {
+      if (p.path !== 'COM20' && p.path !== 'COM21') {
+        extra += `<option value="${p.path}">${p.path}${p.description?' · '+p.description:''}</option>`;
+      }
+    });
+    selA.innerHTML = fixedOpts + extra;
+    selB.innerHTML = fixedOpts + extra;
+  } catch(e) {
+    selA.innerHTML = fixedOpts;
+    selB.innerHTML = fixedOpts;
+  }
+
+  // Always default to COM20 / COM21
+  selA.value = 'COM20';
+  selB.value = 'COM21';
+}
+loadPorts();
+
+// ── Step 1 ─────────────────────────────────────────────
+document.getElementById('s1Next').addEventListener('click', () => {
+  aPort = document.getElementById('aroniumPort').value;
+  bPort = document.getElementById('appPort').value;
+  hideMsg('msg1');
+
+  if (!aPort || !bPort) { showMsg('msg1', 'err', 'Please select both ports.'); return; }
+  if (aPort === bPort)   { showMsg('msg1', 'err', 'The two ports must be different.'); return; }
+
+  // Update visuals
+  document.getElementById('vis1').textContent = aPort;
+  document.getElementById('vis2').textContent = bPort;
+  document.getElementById('nc1').textContent  = aPort;
+  document.getElementById('nc2').textContent  = bPort;
+  document.getElementById('s3Port').textContent    = aPort;
+  document.getElementById('s3AppPort').textContent = bPort;
+
+  goStep(2);
+});
+
+document.getElementById('s1Skip').addEventListener('click', () => {
+  window.electronAPI.skipSetup();
+});
+
+// ── Step 2 — Install ───────────────────────────────────
+document.getElementById('s2Install').addEventListener('click', async () => {
+  const btn = document.getElementById('s2Install');
+  const txt = document.getElementById('s2Txt');
+  const wrap = document.getElementById('progressWrap');
+  const fill = document.getElementById('progressFill');
+  const lbl  = document.getElementById('progressLabel');
+
+  btn.disabled = true;
+  txt.innerHTML = '<span class="spin"></span>Installing...';
+  wrap.style.display = 'block';
+  hideMsg('msg2');
+
+  // Animate progress bar
+  let pct = 0;
+  const timer = setInterval(() => {
+    pct = Math.min(pct + Math.random() * 8, 85);
+    fill.style.width = pct + '%';
+    lbl.textContent = pct < 30 ? 'Downloading com0com driver...'
+      : pct < 60 ? 'Installing driver...'
+      : 'Creating virtual COM pair...';
+  }, 300);
+
+  window.electronAPI.createComPair(aPort, bPort);
+});
+
+document.getElementById('s2Manual').addEventListener('click', () => goStep(3));
+document.getElementById('s2Back').addEventListener('click', () => goStep(1));
+document.getElementById('s3Back').addEventListener('click', () => goStep(2));
+
+// ── COM pair result ────────────────────────────────────
+window.electronAPI.onComPairResult((data) => {
+  const btn  = document.getElementById('s2Install');
+  const txt  = document.getElementById('s2Txt');
+  const fill = document.getElementById('progressFill');
+  const wrap = document.getElementById('progressWrap');
+
+  btn.disabled = false;
+  txt.textContent = 'Install driver & create pair automatically';
+
+  if (data.success) {
+    fill.style.width = '100%';
+    setTimeout(() => {
+      wrap.style.display = 'none';
+      fill.style.width = '0%';
+      showMsg('msg2', 'ok', '✓ Virtual COM pair created successfully!');
+      setTimeout(() => goStep(3), 900);
+    }, 400);
+  } else if (data.error === 'com0com_not_installed') {
+    wrap.style.display = 'none';
+    showMsg('msg2', 'err',
+      'com0com not installed. Please install HHD Virtual Serial Port Tools manually, create the pair ' + aPort + ' ↔ ' + bPort + ', then click "I\'ll do it manually".');
+  } else {
+    wrap.style.display = 'none';
+    showMsg('msg2', 'err', 'Error: ' + (data.error || 'Unknown. Try manually.'));
+  }
+});
+
+// ── Step 3 ─────────────────────────────────────────────
+document.getElementById('s3Next').addEventListener('click', async () => {
+  document.getElementById('f1').textContent = aPort;
+  document.getElementById('f2').textContent = bPort;
+  const ip = await window.electronAPI.getLocalIp();
+  document.getElementById('f3').textContent = 'http://' + ip;
+  goStep(4);
+});
+
+// ── Step 4 — Launch ────────────────────────────────────
+document.getElementById('s4Launch').addEventListener('click', () => {
+  window.electronAPI.saveConfig({ appPort: bPort, aroniumPort: aPort });
+});
+</script>
+</body>
+</html>
