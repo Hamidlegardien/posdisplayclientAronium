@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VSPE_CONFIGURATION version="1">
+  <DEVICE type="NullModem" enabled="1">
+    <PORT index="0">COM20</PORT>
+    <PORT index="1">COM21</PORT>
+  </DEVICE>
+</VSPE_CONFIGURATION>

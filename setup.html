@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Setup — AroniumPOS Display Client</title>
+<style>
+/* ── Design tokens — exact match with main app ──────────────── */
+:root {
+  --bg:          #07090f;
+  --bg-panel:    #0c101a;
+  --bg-row:      rgba(255,255,255,0.028);
+  --accent:      #e8a000;
+  --accent-dim:  rgba(232,160,0,0.10);
+  --accent-glow: rgba(232,160,0,0.28);
+  --green:       #22c55e;
+  --green-dim:   rgba(34,197,94,0.10);
+  --red:         #ef4444;
+  --red-dim:     rgba(239,68,68,0.10);
+  --amber-dim:   rgba(232,160,0,0.08);
+  --text:        #f0ece2;
+  --text-2:      #8a8fa8;
+  --text-3:      #4a4f66;
+  --border:      rgba(232,160,0,0.14);
+  --border-hi:   rgba(232,160,0,0.40);
+  --font:        -apple-system,'Segoe UI',system-ui,sans-serif;
+  --font-mono:   'Cascadia Code','Consolas','Courier New',monospace;
+  --radius:      14px;
+}
+
+/* ── Reset ───────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { font-size:15px; height:100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  overflow-y: auto;
+}
+
+/* ── Subtle grid background ──────────────────────────────────── */
+body::before {
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(232,160,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,160,0,0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ── Layout ──────────────────────────────────────────────────── */
+.wrap {
+  position: relative; z-index:1;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.hdr {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 2px;
+}
+.logo {
+  width: 50px; height: 50px;
+  background: linear-gradient(135deg, var(--accent) 0%, #9a6800 100%);
+  border-radius: 14px;
+  display: flex; align-items:center; justify-content:center;
+  font-size: 24px; flex-shrink:0;
+  box-shadow: 0 0 20px var(--accent-glow), 0 4px 12px rgba(0,0,0,0.5);
+}
+.hdr-text h1 {
+  font-size: 16px; font-weight:700; letter-spacing:-0.2px;
+  color: var(--accent);
+}
+.hdr-text p { font-size:11.5px; color:var(--text-2); margin-top:3px; }
+
+/* ── Steps bar ───────────────────────────────────────────────── */
+.steps-bar {
+  display: flex; align-items:center;
+  padding: 0 2px;
+}
+.step-dot {
+  width:30px; height:30px; border-radius:50%;
+  border:1.5px solid var(--border);
+  background: var(--bg-panel);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:var(--text-3);
+  flex-shrink:0;
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+}
+.step-dot.active {
+  border-color: var(--accent); color:var(--accent);
+  background: var(--accent-dim);
+  box-shadow: 0 0 0 4px var(--accent-dim), 0 0 12px var(--accent-glow);
+}
+.step-dot.done {
+  border-color: var(--green); color:#fff;
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(34,197,94,0.4);
+}
+.step-line {
+  flex:1; height:1.5px; margin:0 6px;
+  background: var(--border);
+  border-radius:2px;
+  transition: background .35s;
+}
+.step-line.done { background:var(--green); box-shadow:0 0 6px rgba(34,197,94,0.3); }
+
+/* ── Card ────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 26px 22px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(232,160,0,0.05);
+  position:relative; overflow:hidden;
+}
+.card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.step-panel { display:none; animation:fadeIn .22s ease; }
+.step-panel.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+
+.step-title {
+  font-size:15px; font-weight:700; letter-spacing:-0.2px;
+  color:var(--accent);
+  margin-bottom:5px;
+  display:flex; align-items:center; gap:7px;
+}
+.step-sub {
+  font-size:12px; color:var(--text-2); line-height:1.6;
+  margin-bottom:20px;
+}
+
+/* ── Status box ──────────────────────────────────────────────── */
+.status-box {
+  display:flex; align-items:flex-start; gap:12px;
+  padding:13px 15px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--bg-row);
+  margin-bottom:16px;
+  transition:all .25s;
+}
+.status-box.ok   { border-color:var(--green); background:var(--green-dim); }
+.status-box.err  { border-color:var(--red);   background:var(--red-dim); }
+.status-box.warn { border-color:var(--accent); background:var(--amber-dim); }
+.status-icon { font-size:18px; line-height:1.2; flex-shrink:0; }
+.status-text strong { display:block; font-size:12.5px; font-weight:600; margin-bottom:2px; }
+.status-text span   { font-size:11px; color:var(--text-2); line-height:1.4; }
+
+/* ── Spinner ─────────────────────────────────────────────────── */
+.spinner {
+  width:18px; height:18px; flex-shrink:0; margin-top:2px;
+  border:2px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ── Pill buttons ────────────────────────────────────────────── */
+.btn {
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  width:100%; padding:12px 24px;
+  border-radius:999px;
+  border:none;
+  font-family:var(--font); font-size:13.5px; font-weight:600;
+  cursor:pointer; letter-spacing:0.1px;
+  transition:all .2s cubic-bezier(.4,0,.2,1);
+  margin-bottom:8px;
+}
+.btn:last-child { margin-bottom:0; }
+.btn:disabled { opacity:.35; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
+
+.btn-primary {
+  background:var(--accent); color:#1a0e00;
+  box-shadow:0 2px 12px var(--accent-dim);
+}
+.btn-primary:not(:disabled):hover {
+  background:#f5b429;
+  transform:translateY(-2px);
+  box-shadow:0 6px 22px var(--accent-glow);
+}
+.btn-primary:not(:disabled):active { transform:translateY(0); }
+
+.btn-success {
+  background:var(--green); color:#fff;
+  box-shadow:0 2px 12px rgba(34,197,94,0.2);
+}
+.btn-success:not(:disabled):hover {
+  background:#16a34a; transform:translateY(-2px);
+  box-shadow:0 6px 22px rgba(34,197,94,0.4);
+}
+
+.btn-ghost {
+  background:transparent; color:var(--text-2);
+  border:1px solid var(--border);
+}
+.btn-ghost:not(:disabled):hover {
+  border-color:var(--accent); color:var(--accent);
+  background:var(--accent-dim);
+}
+
+/* ── Port selects ────────────────────────────────────────────── */
+.port-row {
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;
+  margin-bottom:16px;
+}
+.field { display:flex; flex-direction:column; gap:5px; }
+.field label {
+  font-size:10.5px; font-weight:700; letter-spacing:0.7px;
+  text-transform:uppercase; color:var(--text-3);
+}
+select {
+  padding:10px 32px 10px 13px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--text); font-family:var(--font); font-size:13px;
+  cursor:pointer; outline:none;
+  transition:border-color .2s;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a8fa8'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center;
+}
+select:focus { border-color:var(--accent-glow); }
+
+/* ── Tip ─────────────────────────────────────────────────────── */
+.tip {
+  display:flex; align-items:flex-start; gap:9px;
+  padding:10px 13px;
+  background:var(--bg-row); border:1px solid var(--border);
+  border-radius:10px; font-size:11.5px; color:var(--text-2);
+  margin-bottom:16px; line-height:1.5;
+}
+.tip b { color:var(--accent); }
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.footer {
+  text-align:center; font-size:10.5px;
+  color:var(--text-3); padding:0 4px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="logo">🖥️</div>
+    <div class="hdr-text">
+      <h1>AroniumPOS Display Client</h1>
+      <p>First-time setup — less than 10 seconds</p>
+    </div>
+  </div>
+
+  <!-- Steps indicator -->
+  <div class="steps-bar">
+    <div class="step-dot active" id="dot1">1</div>
+    <div class="step-line"       id="line1"></div>
+    <div class="step-dot"        id="dot2">2</div>
+    <div class="step-line"       id="line2"></div>
+    <div class="step-dot"        id="dot3">3</div>
+  </div>
+
+  <!-- Card -->
+  <div class="card">
+
+    <!-- Step 1: Check ports -->
+    <div class="step-panel active" id="step1">
+      <div class="step-title">🔌 Checking COM ports</div>
+      <div class="step-sub">Verifying that COM20 and COM21 were created during installation.</div>
+      <div class="status-box" id="s1box">
+        <div class="spinner" id="s1spin"></div>
+        <div class="status-text">
+          <strong id="s1title">Scanning…</strong>
+          <span   id="s1sub">Please wait</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="s1next"  disabled>Continue →</button>
+      <button class="btn btn-ghost"   id="s1retry" style="display:none">🔄 Retry scan</button>
+      <button class="btn btn-ghost"   id="s1skip"  style="display:none">Skip — select manually</button>
+    </div>
+
+    <!-- Step 2: Select ports -->
+    <div class="step-panel" id="step2">
+      <div class="step-title">⚙️ Configure ports</div>
+      <div class="step-sub">Select which port Aronium sends to, and which this app reads from.</div>
+      <div class="tip">
+        💡 In Aronium: <b>Settings → Devices → Customer Display</b> → set to the port on the left
+      </div>
+      <div class="port-row">
+        <div class="field">
+          <label>Aronium sends to</label>
+          <select id="portA"></select>
+        </div>
+        <div class="field">
+          <label>App reads from</label>
+          <select id="portB"></select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="s2save">Save & Continue →</button>
+      <button class="btn btn-ghost"   id="s2back">← Back</button>
+    </div>
+
+    <!-- Step 3: Done -->
+    <div class="step-panel" id="step3">
+      <div class="step-title">🎉 All set!</div>
+      <div class="step-sub">Configuration saved. Launching the display now.</div>
+      <div class="status-box ok">
+        <div class="status-icon">✅</div>
+        <div class="status-text">
+          <strong id="done-title">COM pair configured</strong>
+          <span   id="done-sub">Launching in 3…</span>
+        </div>
+      </div>
+      <button class="btn btn-success" id="s3launch">🚀 Launch now</button>
+    </div>
+
+  </div><!-- /card -->
+
+  <div class="footer">AroniumPOS Display Client v1.1.3 · Hamidlegardien</div>
+</div>
+
+<script>
+const api = window.electronAPI;
+let allPorts = [];
+
+function goStep(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('step'+i).classList.toggle('active', i===n);
+    const dot = document.getElementById('dot'+i);
+    dot.classList.remove('active','done');
+    if (i < n)  dot.classList.add('done');
+    if (i===n)  dot.classList.add('active');
+    if (i < 3)  document.getElementById('line'+i).classList.toggle('done', i < n);
+  });
+  if (n === 3) startCountdown();
+}
+
+function setStatus(type, title, sub) {
+  const box = document.getElementById('s1box');
+  const spin = document.getElementById('s1spin');
+  box.className = 'status-box' + (type ? ' '+type : '');
+  spin.style.display = type === 'loading' ? 'block' : 'none';
+  document.getElementById('s1title').textContent = title;
+  document.getElementById('s1sub').textContent   = sub;
+}
+
+async function scanPorts() {
+  ['s1next','s1retry','s1skip'].forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = true;
+    if (id !== 's1next') el.style.display = 'none';
+  });
+  setStatus('loading','Scanning COM ports…','Please wait');
+
+  try {
+    const ports = await api.getSerialPorts();
+    allPorts = ports.map(p => p.path);
+    const has20 = allPorts.some(n => n.toUpperCase()==='COM20');
+    const has21 = allPorts.some(n => n.toUpperCase()==='COM21');
+
+    if (has20 && has21) {
+      setStatus('ok','✓ COM20 and COM21 ready','Virtual pair detected — click Continue');
+      document.getElementById('s1next').disabled = false;
+    } else if (allPorts.length) {
+      setStatus('warn','⚠ COM20/COM21 not found','Found: '+allPorts.join(', ')+' — select manually');
+      document.getElementById('s1next').disabled = false;
+      document.getElementById('s1retry').style.display = '';
+    } else {
+      setStatus('err','✗ No COM ports found','Make sure the installer completed fully. Try restarting.');
+      document.getElementById('s1retry').style.display = '';
+      document.getElementById('s1skip').style.display  = '';
+    }
+
+    buildSelects(allPorts);
+  } catch(e) {
+    setStatus('err','✗ Scan failed', String(e.message||e));
+    document.getElementById('s1retry').style.display = '';
+  }
+}
+
+function buildSelects(names) {
+  ['portA','portB'].forEach((id,i) => {
+    const sel = document.getElementById(id);
+    const def = ['COM20','COM21'][i];
+    sel.innerHTML = names.map(n =>
+      `<option value="${n}"${n.toUpperCase()===def?' selected':''}>${n}</option>`
+    ).join('');
+  });
+}
+
+document.getElementById('s1next').addEventListener('click', ()=>goStep(2));
+document.getElementById('s1retry').addEventListener('click', scanPorts);
+document.getElementById('s1skip').addEventListener('click', ()=>goStep(2));
+
+document.getElementById('s2save').addEventListener('click', () => {
+  const a = document.getElementById('portA').value;
+  const b = document.getElementById('portB').value;
+  if (!a||!b) return;
+  if (a===b) { alert('Ports must be different!'); return; }
+  api.saveConfig({ aroniumPort: a, appPort: b });
+  document.getElementById('done-title').textContent = a+' → '+b+' saved';
+  document.getElementById('done-sub').textContent   = 'In Aronium: use '+a+' for customer display';
+  goStep(3);
+});
+document.getElementById('s2back').addEventListener('click', ()=>goStep(1));
+
+function startCountdown() {
+  let t = 3;
+  const sub = document.getElementById('done-sub');
+  const btn = document.getElementById('s3launch');
+  const timer = setInterval(()=>{
+    t--;
+    sub.textContent = t > 0 ? 'Launching in '+t+'s…' : 'Launching…';
+    if (t<=0) { clearInterval(timer); api.skipSetup(); }
+  }, 1000);
+  btn.addEventListener('click', ()=>{ clearInterval(timer); api.skipSetup(); }, {once:true});
+}
+
+scanPorts();
+</script>
+</body>
+</html>
