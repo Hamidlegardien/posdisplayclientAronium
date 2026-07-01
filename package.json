@@ -1,0 +1,76 @@
+{
+  "name": "aroniumpos-display-client",
+  "version": "1.1.4",
+  "description": "AroniumPOS Display Client \u2014 Secondary customer display for Aronium POS",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64 --dir",
+    "build:installer": "electron-builder --win --x64 --dir && iscc build\\installer.iss"
+  },
+  "dependencies": {
+    "@serialport/parser-readline": "^11.0.1",
+    "serialport": "^11.0.0",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4"
+  },
+  "author": "Hamidlegardien",
+  "license": "MIT",
+  "build": {
+    "appId": "com.hamidlegardien.aroniumpos-display-client",
+    "productName": "AroniumPOS Display Client",
+    "copyright": "Copyright \u00a9 2025 Hamidlegardien",
+    "directories": {
+      "output": "dist"
+    },
+    "extraResources": [],
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "app.js",
+      "styles.css",
+      "setup.html",
+      "pwa/**/*",
+      "build/icon.ico"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "AroniumPOS-Display-Client-Setup-${version}.exe",
+      "publisherName": "Hamidlegardien"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": false,
+      "allowElevation": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AroniumPOS Display Client",
+      "menuCategory": "AroniumPOS",
+      "deleteAppDataOnUninstall": true,
+      "include": "build/installer.nsh"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Hamidlegardien",
+        "repo": "posdisplayclientAronium",
+        "releaseType": "release"
+      }
+    ]
+  }
+}
