@@ -1,0 +1,79 @@
+name: Build & Release AroniumPOS Display Client
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build unpacked app
+        run: npx electron-builder --win --x64 --dir
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find ISCC.exe
+        shell: pwsh
+        run: |
+          $paths = @(
+            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe"
+          )
+          $found = $paths | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $found) {
+            choco install innosetup --no-progress -y --force
+            $found = $paths | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          Write-Host "Using ISCC: $found"
+          echo "ISCC_PATH=$found" >> $env:GITHUB_ENV
+
+      - name: Build Inno Setup installer
+        shell: cmd
+        run: '"%ISCC_PATH%" build\installer.iss'
+
+      - name: List dist-inno
+        shell: pwsh
+        run: Get-ChildItem dist-inno -Recurse -ErrorAction SilentlyContinue
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist-inno/*.exe
+          draft: false
+          prerelease: false
+          body: |
+            ## AroniumPOS Display Client ${{ github.ref_name }}
+
+            ### ⬇️ Download
+            | File | Description |
+            |------|-------------|
+            | `AroniumPOS-Display-Client-Setup-${{ github.ref_name }}.exe` | ✅ Windows installer (x64) |
+
+            ### Install — 3 steps
+            1. Run the `.exe` → accept UAC (admin needed for COM driver)
+            2. **COM20 ↔ COM21 created automatically** — nothing to configure
+            3. In Aronium: Settings → Devices → Customer Display → **COM20** → Enable ✓
+
+            ### Phone / Tablet
+            Open Chrome or Safari → `http://YOUR-PC-IP:3000`
+
+            ### Languages
+            🇬🇧 English / 🇫🇷 Français / 🇲🇦 العربية — Config panel ⚙️ top-right
+
+            ### Currency
+            Auto-detected from Windows locale (MAD, USD, EUR, GBP…)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

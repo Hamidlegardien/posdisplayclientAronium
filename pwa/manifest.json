@@ -1,0 +1,29 @@
+{
+  "name": "AroniumPOS Display Client",
+  "short_name": "AroniumPOS",
+  "description": "Secondary customer display for Aronium POS \u2014 Phone & Tablet",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#07090f",
+  "theme_color": "#07090f",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "business",
+    "utilities"
+  ],
+  "screenshots": []
+}
